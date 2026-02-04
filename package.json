@@ -1,0 +1,16 @@
+{
+    "name": "radio-upec-root",
+    "version": "1.0.0",
+    "description": "Root project for Radio UPEC",
+    "scripts": {
+        "start": "node server/index.js",
+        "dev": "concurrently \"npm run server:dev\" \"npm run admin\"",
+        "build": "cd admin-panel && npm install && npm run build",
+        "postinstall": "cd server && npm install && cd ../admin-panel && npm install",
+        "server:dev": "cd server && npm start",
+        "admin": "cd admin-panel && npm run dev"
+    },
+    "dependencies": {
+        "concurrently": "^8.2.2"
+    }
+}

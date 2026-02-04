@@ -1,0 +1,21 @@
+{
+  "name": "radio-upec-server",
+  "version": "1.0.0",
+  "description": "Central server for Radio UPEC",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.21.2",
+    "google-tts-api": "^2.0.2",
+    "mongoose": "^8.1.1",
+    "socket.io": "^4.8.1"
+  }
+}
