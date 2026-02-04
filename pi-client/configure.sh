@@ -12,41 +12,32 @@ echo ""
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "$SCRIPT_DIR"
 
-# Función para validar IP
-validate_ip() {
-    local ip=$1
-    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+# Función para verificar conectividad
+test_server_connection() {
+    local url=$1
+    echo "Verificando conectividad con el servidor..."
+    
+    # Intentar conexión con curl (soporta HTTP y HTTPS)
+    if command -v curl &> /dev/null; then
+        if curl --output /dev/null --silent --head --fail "$url"; then
+            echo "✓ Servidor accesible en $url"
+            return 0
+        fi
+    elif command -v wget &> /dev/null; then
+        if wget -q --spider "$url"; then
+            echo "✓ Servidor accesible en $url"
+            return 0
+        fi
+    fi
+
+    # Fallback o si falla curl/wget
+    echo "⚠ ADVERTENCIA: No se pudo verificar la conexión a $url"
+    echo "  (Esto puede ser normal si el servidor bloquea pings o respuestas vacías)"
+    read -p "¿Deseas continuar de todas formas? (s/n): " continue_anyway
+    if [[ $continue_anyway == "s" || $continue_anyway == "S" ]]; then
         return 0
     else
         return 1
-    fi
-}
-
-# Función para verificar conectividad
-test_server_connection() {
-    local server_url=$1
-    echo "Verificando conectividad con el servidor..."
-    
-    # Extraer IP y puerto de la URL
-    local ip=$(echo $server_url | sed -n 's|http://\([^:]*\):.*|\1|p')
-    local port=$(echo $server_url | sed -n 's|.*:\([0-9]*\)|\1|p')
-    
-    # Verificar si el puerto está abierto
-    if timeout 5 bash -c "cat < /dev/null > /dev/tcp/$ip/$port" 2>/dev/null; then
-        echo "✓ Servidor accesible en $server_url"
-        return 0
-    else
-        echo "⚠ ADVERTENCIA: No se pudo conectar al servidor en $server_url"
-        echo "  Verifica que:"
-        echo "  - El servidor esté ejecutándose"
-        echo "  - La IP y puerto sean correctos"
-        echo "  - No haya firewall bloqueando la conexión"
-        read -p "¿Deseas continuar de todas formas? (s/n): " continue_anyway
-        if [[ $continue_anyway == "s" || $continue_anyway == "S" ]]; then
-            return 0
-        else
-            return 1
-        fi
     fi
 }
 
@@ -65,30 +56,33 @@ fi
 echo ""
 echo "Ingresa la configuración del servidor:"
 echo "---------------------------------------"
+echo "Ejemplos:"
+echo "  - Cloud: https://radio-upec.onrender.com"
+echo "  - Local: http://192.168.1.100:3000"
+echo ""
 
-# Solicitar IP del servidor
 while true; do
-    read -p "IP del servidor (ej: 192.168.1.100): " server_ip
+    read -p "URL del servidor: " server_url
     
-    if validate_ip "$server_ip"; then
+    # Validación básica (debe empezar con http:// o https://)
+    if [[ $server_url =~ ^https?:// ]]; then
         break
     else
-        echo "⚠ IP inválida. Por favor ingresa una IP válida (ej: 192.168.1.100)"
+        echo "⚠ La URL debe comenzar con http:// o https://"
+        # Intento de corrección automática
+        read -p "¿Quisiste decir http://$server_url? (s/n): " try_fix
+        if [[ $try_fix == "s" || $try_fix == "S" ]]; then
+             server_url="http://$server_url"
+             break
+        fi
     fi
 done
 
-# Solicitar puerto del servidor
-read -p "Puerto del servidor (default 3000): " server_port
-server_port=${server_port:-3000}
-
-# Construir URL del servidor
-server_url="http://$server_ip:$server_port"
+# Eliminar barra final si existe
+server_url=${server_url%/}
 
 # Verificar conectividad
-if ! test_server_connection "$server_url"; then
-    echo "Configuración cancelada."
-    exit 1
-fi
+test_server_connection "$server_url"
 
 # Solicitar nombre del dispositivo (opcional)
 echo ""
@@ -128,3 +122,5 @@ echo "  Configuración completada exitosamente"
 echo "========================================="
 echo ""
 echo "Siguiente paso: Ejecuta 'sudo ./install.sh' para instalar el servicio"
+echo "Si ya estaba instalado: 'sudo systemctl restart radio-upec'"
+echo ""
