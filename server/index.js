@@ -85,10 +85,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('update_settings', async ({ type, list }) => {
+    console.log(`📝 REQUEST: update_settings for ${type}`, list);
     // type: 'campuses' | 'buildings' | 'floors'
     if (['campuses', 'buildings', 'floors'].includes(type) && Array.isArray(list)) {
       try {
-        await Setting.findOneAndUpdate({ key: type }, { value: list }, { upsert: true });
+        console.log(`💾 SAVING to MongoDB: ${type}...`);
+        const result = await Setting.findOneAndUpdate({ key: type }, { value: list }, { upsert: true, new: true });
+        console.log(`✅ SAVED MongoDB: ${type}`, result);
 
         // Broadcast new settings to all
         const campusesDoc = await Setting.findOne({ key: 'campuses' });
@@ -100,9 +103,12 @@ io.on('connection', (socket) => {
           buildings: buildingsDoc?.value || [],
           floors: floorsDoc?.value || []
         });
+        console.log(`📡 BROADCAST settings data`);
       } catch (err) {
-        console.error('Error updating settings:', err);
+        console.error('❌ Error updating settings:', err);
       }
+    } else {
+      console.warn(`⚠️ INVALID update_settings payload:`, { type, list });
     }
   });
 
