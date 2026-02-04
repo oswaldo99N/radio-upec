@@ -24,6 +24,34 @@ const io = new Server(server, {
 // --- MONGODB CONNECTION & INITIALIZATION ---
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/radio-upec';
 
+// --- SCHEMAS & MODELS ---
+
+const deviceSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  name: String,
+  campus: { type: String, default: '' },
+  building: { type: String, default: '' },
+  floor: { type: String, default: '' },
+  ip: String,
+  volume: { type: Number, default: 90 },
+  status: { type: String, default: 'offline' },
+  is_playing: { type: Boolean, default: false },
+  is_muted: { type: Boolean, default: false },
+  saved_volume: { type: Number, default: 90 },
+  boot_volume: { type: Number, default: 50 },
+  is_volume_locked: { type: Boolean, default: false },
+  username: { type: String, default: 'pi' },
+  last_seen: { type: Date, default: Date.now }
+});
+
+const settingSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  value: { type: mongoose.Schema.Types.Mixed } // Can store arrays or strings
+});
+
+const Device = mongoose.model('Device', deviceSchema);
+const Setting = mongoose.model('Setting', settingSchema);
+
 // Initialize settings if empty
 const initSettings = async () => {
   try {
