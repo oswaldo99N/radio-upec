@@ -24,6 +24,22 @@ const io = new Server(server, {
 // --- MONGODB CONNECTION & INITIALIZATION ---
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/radio-upec';
 
+// Initialize settings if empty
+const initSettings = async () => {
+  try {
+    const keys = ['campuses', 'buildings', 'floors'];
+    for (const key of keys) {
+      const exists = await Setting.findOne({ key });
+      if (!exists) {
+        await Setting.create({ key, value: DEFAULT_SETTINGS[key] });
+        console.log(`Initialized setting: ${key}`);
+      }
+    }
+  } catch (err) {
+    console.error('Error initializing settings:', err);
+  }
+};
+
 const startServer = async () => {
   try {
     await mongoose.connect(MONGO_URI);
