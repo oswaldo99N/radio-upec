@@ -21,65 +21,29 @@ const io = new Server(server, {
   }
 });
 
-// --- MONGODB CONNECTION ---
+// --- MONGODB CONNECTION & INITIALIZATION ---
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/radio-upec';
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ Connected to MongoDB'))
-  .catch(err => console.error('❌ MongoDB Connection Error:', err));
-
-// --- SCHEMAS & MODELS ---
-
-const deviceSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  name: String,
-  campus: { type: String, default: '' },
-  building: { type: String, default: '' },
-  floor: { type: String, default: '' },
-  ip: String,
-  volume: { type: Number, default: 90 },
-  status: { type: String, default: 'offline' },
-  is_playing: { type: Boolean, default: false },
-  is_muted: { type: Boolean, default: false },
-  saved_volume: { type: Number, default: 90 },
-  boot_volume: { type: Number, default: 50 },
-  is_volume_locked: { type: Boolean, default: false },
-  username: { type: String, default: 'pi' },
-  last_seen: { type: Date, default: Date.now }
-});
-
-const settingSchema = new mongoose.Schema({
-  key: { type: String, required: true, unique: true },
-  value: { type: mongoose.Schema.Types.Mixed } // Can store arrays or strings
-});
-
-const Device = mongoose.model('Device', deviceSchema);
-const Setting = mongoose.model('Setting', settingSchema);
-
-// --- INITIALIZATION ---
-
-const DEFAULT_SETTINGS = {
-  campuses: [],
-  buildings: [],
-  floors: []
-};
-
-// Initialize settings if empty
-const initSettings = async () => {
+const startServer = async () => {
   try {
-    const keys = ['campuses', 'buildings', 'floors'];
-    for (const key of keys) {
-      const exists = await Setting.findOne({ key });
-      if (!exists) {
-        await Setting.create({ key, value: DEFAULT_SETTINGS[key] });
-        console.log(`Initialized setting: ${key}`);
-      }
-    }
+    await mongoose.connect(MONGO_URI);
+    console.log('✅ Connected to MongoDB');
+
+    // Initialize settings after successful connection
+    await initSettings();
+
+    // Start listening only after DB is ready
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
   } catch (err) {
-    console.error('Error initializing settings:', err);
+    console.error('❌ Failed to connect to MongoDB:', err);
+    process.exit(1); // Exit if DB connection fails
   }
 };
-initSettings();
+
+startServer();
 
 // In-memory map to track active socket connections by device ID
 const deviceSockets = new Map();
@@ -431,7 +395,4 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../admin-panel/dist/index.html'));
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
