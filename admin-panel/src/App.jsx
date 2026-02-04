@@ -3,7 +3,8 @@ import io from 'socket.io-client';
 import { Play, Square, Volume2, VolumeX, Edit2, Radio, Activity, Save, Wifi, WifiOff, Settings, Mic, Lock, Unlock } from 'lucide-react';
 
 // Connect to server (adjust URL if deployed elsewhere)
-const socket = io('http://localhost:3000');
+// Connect to server (dynamic based on environment)
+const socket = io(import.meta.env.DEV ? 'http://localhost:3000' : '/');
 
 const SettingsModal = ({ isOpen, onClose, settings, updateSettings }) => {
   if (!isOpen) return null;
